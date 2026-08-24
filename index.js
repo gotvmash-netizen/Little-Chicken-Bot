@@ -1,7 +1,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 
 const client = new Client({
   intents: [
@@ -9,26 +9,26 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessageReactions,
   ],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// --- Cargar comandos ---
+// --- Load commands ---
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
+const commandFiles = fs.readdirSync(commandsPath).filter((f) => f.endsWith('.js'));
 
 for (const file of commandFiles) {
   const command = require(path.join(commandsPath, file));
   if (command.data && command.execute) {
     client.commands.set(command.data.name, command);
-  } else {
-    console.warn(`[AVISO] El comando en ${file} no tiene "data" o "execute".`);
   }
 }
 
-// --- Cargar eventos ---
+// --- Load events ---
 const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(f => f.endsWith('.js'));
+const eventFiles = fs.readdirSync(eventsPath).filter((f) => f.endsWith('.js'));
 
 for (const file of eventFiles) {
   const event = require(path.join(eventsPath, file));
