@@ -1,7 +1,7 @@
 // commands/event.js
 const fs = require('fs');
 const path = require('path');
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, PermissionsBitField } = require('discord.js');
 
 const VALID_TYPES = ['Minor', 'Moderate', 'Medium', 'Severe', 'Major'];
 
@@ -31,14 +31,16 @@ function saveEvents(events) {
 module.exports = {
   name: 'event',
   execute(message, client, args) {
-    // Expected: !event @user_mention [Name] [Type]
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return message.reply('❌ Only administrators can use this command.');
+    }
+
     const mentionedUser = message.mentions.users.first();
 
     if (!mentionedUser) {
       return message.reply('❌ You need to mention a user. Usage: `!event @user Name Type`');
     }
 
-    // Remove the mention from args, whatever position it was in
     const filteredArgs = args.filter((arg) => !arg.includes(mentionedUser.id));
 
     if (filteredArgs.length < 2) {
@@ -47,7 +49,6 @@ module.exports = {
       );
     }
 
-    // Last argument is the type, everything before it is the event name
     const type = filteredArgs[filteredArgs.length - 1];
     const eventName = filteredArgs.slice(0, -1).join(' ');
 
