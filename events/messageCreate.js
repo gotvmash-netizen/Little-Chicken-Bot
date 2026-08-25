@@ -1,5 +1,7 @@
+// events/messageCreate.js
 const fs = require('fs');
 const path = require('path');
+const { logCommand } = require('../utils/commandLogger');
 
 const prefix = '!';
 
@@ -28,6 +30,7 @@ module.exports = {
     const command = prefixCommands.get(commandName);
     if (!command) return;
 
+    logCommand(message.guild, message, commandName, args);
     command.execute(message, client, args);
   },
 };
