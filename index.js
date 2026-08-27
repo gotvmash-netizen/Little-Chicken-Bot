@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
+const { startBreakScheduler } = require('./utils/breakScheduler');
 
 const client = new Client({
   intents: [
@@ -38,6 +39,12 @@ for (const file of eventFiles) {
     client.on(event.name, (...args) => event.execute(...args, client));
   }
 }
+
+// --- Start background schedulers ---
+client.once('ready', () => {
+  startBreakScheduler(client);
+  console.log(`Logged in as ${client.user.tag}`);
+});
 
 // --- Login ---
 client.login(process.env.DISCORD_TOKEN);
