@@ -4,16 +4,9 @@ const path = require('path');
 const { EmbedBuilder } = require('discord.js');
 
 const dataPath = path.join(__dirname, '..', 'data', 'events.json');
-
-const TYPE_EMOJIS = {
-  Minor: '🟢',
-  Moderate: '🔵',
-  Medium: '🟡',
-  Severe: '🟠',
-  Major: '🔴',
-};
-
 const MEDALS = ['🥇', '🥈', '🥉'];
+const DIVISION_ROLE_NAMES = ['Division 1', 'Division 2', 'Division 3', 'Division 4'];
+const MAX_ENTRIES = 20;
 
 function loadEvents() {
   if (!fs.existsSync(dataPath)) return [];
@@ -22,6 +15,13 @@ function loadEvents() {
   } catch {
     return [];
   }
+}
+
+function getDivisionTitle(guild, userId) {
+  const member = guild.members.cache.get(userId);
+  if (!member) return 'No Division';
+  const role = member.roles.cache.find((r) => DIVISION_ROLE_NAMES.includes(r.name));
+  return role ? role.name : 'No Division';
 }
 
 module.exports = {
@@ -33,36 +33,37 @@ module.exports = {
       return message.reply('📭 No events have been logged yet.');
     }
 
-    // Tally totals and per-type counts for each user
     const stats = {};
     for (const e of events) {
       if (!stats[e.user]) {
-        stats[e.user] = { total: 0, Minor: 0, Moderate: 0, Medium: 0, Severe: 0, Major: 0 };
+        stats[e.user] = { total: 0, username: e.username };
       }
       stats[e.user].total++;
-      stats[e.user][e.type]++;
+      stats[e.user].username = e.username;
     }
 
     const ranked = Object.entries(stats)
       .sort(([, a], [, b]) => b.total - a.total)
-      .slice(0, 10);
+      .slice(0, MAX_ENTRIES);
 
     const lines = ranked.map(([userId, s], i) => {
-      const rank = MEDALS[i] || `**#${i + 1}**`;
-      const breakdown = Object.entries(TYPE_EMOJIS)
-        .filter(([type]) => s[type] > 0)
-        .map(([type, emoji]) => `${emoji}${s[type]}`)
-        .join(' ');
-
-      return `${rank} <@${userId}> — **${s.total}** total\n${breakdown}`;
+      const rank = MEDALS[i] || `\`#${i + 1}\``;
+      const title = getDivisionTitle(message.guild, userId);
+      return `${rank} \`${s.username}\` - **${s.total} Event${s.total === 1 ? '' : 's'}** | ${title}`;
     });
 
+    const nowUnix = Math.floor(Date.now() / 1000);
+
     const embed = new EmbedBuilder()
-      .setTitle('🏆 Event Leaderboard')
       .setColor(0xf1c40f)
-      .setDescription(lines.join('\n\n'))
-      .setFooter({ text: 'Top 10 by total events logged' })
-      .setTimestamp();
+      .setDescription(
+        `🏆 **Overall Events Leaderboard**\n` +
+        `_Most logged events of all time_\n` +
+        `_Last updated <t:${nowUnix}:R>_\n\n` +
+        `**Total Events Logged:** ${events.length}\n` +
+        `**Users Listed:** ${ranked.length}\n\n` +
+        lines.join('\n')
+      );
 
     message.channel.send({ embeds: [embed] });
   },
