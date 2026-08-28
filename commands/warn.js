@@ -20,7 +20,7 @@ function saveWarnings(warnings) {
 
 module.exports = {
   name: 'warn',
-  execute(message, client, args) {
+  async execute(message, client, args) {
     if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
       return message.reply('❌ Only administrators can use this command.');
     }
@@ -37,6 +37,7 @@ module.exports = {
 
     const warnings = loadWarnings();
     const userWarnings = warnings.filter((w) => w.user === targetUser.id);
+    const totalWarnings = userWarnings.length + 1;
 
     warnings.push({
       user: targetUser.id,
@@ -47,13 +48,32 @@ module.exports = {
     });
     saveWarnings(warnings);
 
+    // Try to DM the user
+    let dmSent = true;
+    const dmEmbed = new EmbedBuilder()
+      .setTitle(`⚠️ You've been warned in ${message.guild.name}`)
+      .setColor(0xe67e22)
+      .addFields(
+        { name: 'Reason', value: reason },
+        { name: 'Total warnings', value: `${totalWarnings}` }
+      )
+      .setFooter({ text: `Issued by ${message.author.tag}` })
+      .setTimestamp();
+
+    try {
+      await targetUser.send({ embeds: [dmEmbed] });
+    } catch {
+      dmSent = false;
+    }
+
     const embed = new EmbedBuilder()
       .setTitle('⚠️ Warning Issued')
       .setColor(0xe67e22)
       .setDescription(`${targetUser} has been warned.`)
       .addFields(
         { name: 'Reason', value: reason },
-        { name: 'Total warnings', value: `${userWarnings.length + 1}`, inline: true }
+        { name: 'Total warnings', value: `${totalWarnings}`, inline: true },
+        { name: 'DM sent', value: dmSent ? '✅ Yes' : '❌ No (DMs closed)', inline: true }
       )
       .setFooter({ text: `Issued by ${message.author.tag}` })
       .setTimestamp();
