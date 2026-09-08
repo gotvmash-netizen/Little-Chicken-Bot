@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const { startBreakScheduler } = require('./utils/breakScheduler');
+const { startWarnScheduler } = require('./utils/warnScheduler');
 
 const client = new Client({
   intents: [
@@ -43,6 +44,7 @@ for (const file of eventFiles) {
 // --- Start background schedulers ---
 client.once('ready', () => {
   startBreakScheduler(client);
+  startWarnScheduler(client);
   console.log(`Logged in as ${client.user.tag}`);
 });
 
