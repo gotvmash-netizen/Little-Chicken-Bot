@@ -4,6 +4,7 @@ const path = require('path');
 const { EmbedBuilder, PermissionsBitField } = require('discord.js');
 
 const dataPath = path.join(__dirname, '..', 'data', 'warnings.json');
+const WARNS_CHANNEL_ID = '1541815060639260853';
 
 function loadWarnings() {
   if (!fs.existsSync(dataPath)) return [];
@@ -64,6 +65,24 @@ module.exports = {
       await targetUser.send({ embeds: [dmEmbed] });
     } catch {
       dmSent = false;
+    }
+
+    const logEmbed = new EmbedBuilder()
+      .setTitle('⚠️ Warning Issued')
+      .setColor(0xe67e22)
+      .setThumbnail(targetUser.displayAvatarURL())
+      .addFields(
+        { name: 'User', value: `${targetUser} (${targetUser.tag})`, inline: true },
+        { name: 'Total warnings', value: `${totalWarnings}`, inline: true },
+        { name: 'Reason', value: reason }
+      )
+      .setFooter({ text: `Issued by ${message.author.tag}` })
+      .setTimestamp();
+
+    // Post to the dedicated warns channel
+    const warnsChannel = message.guild.channels.cache.get(WARNS_CHANNEL_ID);
+    if (warnsChannel) {
+      warnsChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
 
     const embed = new EmbedBuilder()
