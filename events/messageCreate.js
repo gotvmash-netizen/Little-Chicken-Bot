@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { logCommand } = require('../utils/commandLogger');
 
-const prefix = 'g!';
+const prefix = '!';
 
 // nwtaken i love you
 const prefixCommands = new Map();
