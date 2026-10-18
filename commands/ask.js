@@ -26,7 +26,9 @@ async function askGemini(question) {
   );
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const errorData = await response.json();
+    console.error('Gemini API error response:', errorData);
+    throw new Error(`API error ${response.status}: ${JSON.stringify(errorData)}`);
   }
 
   const data = await response.json();
@@ -62,7 +64,7 @@ module.exports = {
     } catch (error) {
       console.error('Gemini API error:', error);
       await thinking.edit(
-        '❌ Failed to get a response. Try again later.'
+        `❌ Error: ${error.message}`
       );
     }
   },
