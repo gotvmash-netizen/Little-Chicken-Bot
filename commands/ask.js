@@ -1,38 +1,31 @@
 // commands/ask.js
 const { EmbedBuilder } = require('discord.js');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
 
-async function askGemini(question) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: question,
-              },
-            ],
-          },
-        ],
-      }),
-    }
-  );
+async function askTogether(question) {
+  const response = await fetch('https://api.together.xyz/v1/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${TOGETHER_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'meta-llama/Llama-2-70b-chat-hf',
+      prompt: question,
+      max_tokens: 1024,
+      temperature: 0.7,
+    }),
+  });
 
   if (!response.ok) {
     const errorData = await response.json();
-    console.error('Gemini API error response:', errorData);
+    console.error('Together API error response:', errorData);
     throw new Error(`API error ${response.status}: ${JSON.stringify(errorData)}`);
   }
 
   const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  return data.choices[0].text.trim();
 }
 
 module.exports = {
@@ -44,25 +37,25 @@ module.exports = {
       return message.reply('❌ Usage: `!ask <question>`');
     }
 
-    if (!GEMINI_API_KEY) {
+    if (!TOGETHER_API_KEY) {
       return message.reply('❌ AI is not configured. Contact an admin.');
     }
 
     const thinking = await message.reply('🤔 Thinking...');
 
     try {
-      const answer = await askGemini(question);
+      const answer = await askTogether(question);
 
       const embed = new EmbedBuilder()
-        .setTitle('💭 Gemini')
-        .setColor(0x4285f4)
+        .setTitle('💭 Together AI')
+        .setColor(0x6366f1)
         .setDescription(answer)
         .setFooter({ text: `Asked by ${message.author.tag}` })
         .setTimestamp();
 
       await thinking.edit({ content: '', embeds: [embed] });
     } catch (error) {
-      console.error('Gemini API error:', error);
+      console.error('Together API error:', error);
       await thinking.edit(
         `❌ Error: ${error.message}`
       );
