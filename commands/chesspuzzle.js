@@ -1,55 +1,21 @@
 // commands/chesspuzzle.js
 const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
-const { createCanvas } = require('canvas');
 const { Chess } = require('chess.js');
 const { getRandomPuzzle } = require('../utils/chessData');
+const fetch = require('node-fetch');
 
 const activePuzzles = new Map();
-const pieceUnicode = {
-  'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
-  'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔',
-};
 
-function drawBoard(fen) {
-  const canvas = createCanvas(400, 400);
-  const ctx = canvas.getContext('2d');
-  const squareSize = 50;
-
-  const board = fen.split(' ')[0];
-  const rows = board.split('/');
-
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const x = col * squareSize;
-      const y = row * squareSize;
-
-      ctx.fillStyle = (row + col) % 2 === 0 ? '#f0d9b5' : '#b58863';
-      ctx.fillRect(x, y, squareSize, squareSize);
-    }
+async function getBoardImage(fen) {
+  try {
+    const encodedFen = encodeURIComponent(fen);
+    const url = `https://fen2image.chessvision.ai/?fen=${encodedFen}`;
+    const response = await fetch(url);
+    return await response.buffer();
+  } catch (error) {
+    console.error('Error generating board image:', error);
+    return null;
   }
-
-  let col = 0, row = 0;
-  for (const char of board) {
-    if (char === '/') {
-      row++;
-      col = 0;
-    } else if (/\d/.test(char)) {
-      col += parseInt(char);
-    } else {
-      const x = col * squareSize + squareSize / 2;
-      const y = row * squareSize + squareSize / 2;
-
-      ctx.font = 'bold 40px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#000';
-      ctx.fillText(pieceUnicode[char], x, y);
-
-      col++;
-    }
-  }
-
-  return canvas.toBuffer();
 }
 
 module.exports = {
@@ -58,8 +24,8 @@ module.exports = {
     const puzzle = getRandomPuzzle();
     const chess = new Chess(puzzle.fen);
 
-    const boardImage = drawBoard(puzzle.fen);
-    const attachment = new AttachmentBuilder(boardImage, { name: 'board.png' });
+    const boardBuffer = await getBoardImage(puzzle.fen);
+    const attachment = new AttachmentBuilder(boardBuffer || Buffer.alloc(0), { name: 'board.png' });
 
     const embed = new EmbedBuilder()
       .setTitle('♟️ Chess Puzzle')
