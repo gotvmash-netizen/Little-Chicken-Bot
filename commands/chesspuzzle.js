@@ -2,30 +2,26 @@
 const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { Chess } = require('chess.js');
 const { getRandomPuzzle } = require('../utils/chessData');
+const https = require('https');
 
 const activePuzzles = new Map();
 
-async function getBoardImage(fen) {
-  try {
+function getBoardImage(fen) {
+  return new Promise((resolve) => {
     const encodedFen = encodeURIComponent(fen);
     const url = `https://lichess.org/api/board/image/standard/${encodedFen}`;
-    
-    const response = await fetch(url);
-    console.log('API Response status:', response.status);
-    
-    if (!response.ok) {
-      console.error('API error:', response.status);
-      return null;
-    }
-    
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    console.log('Buffer size:', buffer.length);
-    return buffer.length > 0 ? buffer : null;
-  } catch (error) {
-    console.error('Error generating board image:', error);
-    return null;
-  }
+
+    https.get(url, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        resolve(Buffer.concat(chunks));
+      });
+    }).on('error', (err) => {
+      console.error('Error fetching board:', err);
+      resolve(null);
+    });
+  });
 }
 
 module.exports = {
@@ -34,11 +30,9 @@ module.exports = {
     const puzzle = getRandomPuzzle();
     const chess = new Chess(puzzle.fen);
 
-    await message.reply('🤔 Generating puzzle...');
-
     const boardBuffer = await getBoardImage(puzzle.fen);
 
-    if (!boardBuffer) {
+    if (!boardBuffer || boardBuffer.length === 0) {
       return message.reply('❌ Could not generate board image. Try again.');
     }
 
