@@ -8,17 +8,18 @@ const activePuzzles = new Map();
 async function getBoardImage(fen) {
   try {
     const encodedFen = encodeURIComponent(fen);
-    const url = `https://fen2image.chessvision.ai/?fen=${encodedFen}&raw=true`;
+    const url = `https://lichess.org/api/board/image/standard/${encodedFen}`;
     
     const response = await fetch(url);
     console.log('API Response status:', response.status);
     
     if (!response.ok) {
-      console.error('API error:', response.status, response.statusText);
+      console.error('API error:', response.status);
       return null;
     }
     
-    const buffer = await response.buffer();
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     console.log('Buffer size:', buffer.length);
     return buffer.length > 0 ? buffer : null;
   } catch (error) {
