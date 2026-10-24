@@ -1,37 +1,55 @@
 // commands/chesspuzzle.js
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { createCanvas } = require('canvas');
 const { Chess } = require('chess.js');
 const { getRandomPuzzle } = require('../utils/chessData');
 
 const activePuzzles = new Map();
+const pieceUnicode = {
+  'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+  'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔',
+};
 
-function boardToEmoji(fen) {
-  const pieces = {
-    p: '♟', P: '♙',
-    n: '♞', N: '♘',
-    b: '♝', B: '♗',
-    r: '♜', R: '♖',
-    q: '♛', Q: '♕',
-    k: '♚', K: '♔',
-  };
+function drawBoard(fen) {
+  const canvas = createCanvas(400, 400);
+  const ctx = canvas.getContext('2d');
+  const squareSize = 50;
 
   const board = fen.split(' ')[0];
   const rows = board.split('/');
 
-  let boardEmoji = '';
-  for (let i = 0; i < rows.length; i++) {
-    let row = '';
-    for (const char of rows[i]) {
-      if (/\d/.test(char)) {
-        row += '⬜'.repeat(parseInt(char));
-      } else {
-        row += pieces[char] || char;
-      }
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const x = col * squareSize;
+      const y = row * squareSize;
+
+      ctx.fillStyle = (row + col) % 2 === 0 ? '#f0d9b5' : '#b58863';
+      ctx.fillRect(x, y, squareSize, squareSize);
     }
-    boardEmoji += row + '\n';
   }
 
-  return boardEmoji;
+  let col = 0, row = 0;
+  for (const char of board) {
+    if (char === '/') {
+      row++;
+      col = 0;
+    } else if (/\d/.test(char)) {
+      col += parseInt(char);
+    } else {
+      const x = col * squareSize + squareSize / 2;
+      const y = row * squareSize + squareSize / 2;
+
+      ctx.font = 'bold 40px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#000';
+      ctx.fillText(pieceUnicode[char], x, y);
+
+      col++;
+    }
+  }
+
+  return canvas.toBuffer();
 }
 
 module.exports = {
@@ -40,14 +58,14 @@ module.exports = {
     const puzzle = getRandomPuzzle();
     const chess = new Chess(puzzle.fen);
 
+    const boardImage = drawBoard(puzzle.fen);
+    const attachment = new AttachmentBuilder(boardImage, { name: 'board.png' });
+
     const embed = new EmbedBuilder()
       .setTitle('♟️ Chess Puzzle')
       .setColor(0x76b900)
       .setDescription(puzzle.description)
-      .addFields({
-        name: 'Board',
-        value: '```\n' + boardToEmoji(puzzle.fen) + '```',
-      })
+      .setImage('attachment://board.png')
       .addFields({
         name: 'Difficulty',
         value: puzzle.difficulty,
@@ -56,7 +74,10 @@ module.exports = {
       .setFooter({ text: 'Reply with the move (e.g., e2e4)' })
       .setTimestamp();
 
-    const msg = await message.channel.send({ embeds: [embed] });
+    const msg = await message.channel.send({ 
+      embeds: [embed], 
+      files: [attachment] 
+    });
 
     activePuzzles.set(message.author.id, {
       puzzle,
