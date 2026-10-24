@@ -2,16 +2,25 @@
 const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const { Chess } = require('chess.js');
 const { getRandomPuzzle } = require('../utils/chessData');
-const fetch = require('node-fetch');
 
 const activePuzzles = new Map();
 
 async function getBoardImage(fen) {
   try {
     const encodedFen = encodeURIComponent(fen);
-    const url = `https://fen2image.chessvision.ai/?fen=${encodedFen}`;
+    const url = `https://fen2image.chessvision.ai/?fen=${encodedFen}&raw=true`;
+    
     const response = await fetch(url);
-    return await response.buffer();
+    console.log('API Response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('API error:', response.status, response.statusText);
+      return null;
+    }
+    
+    const buffer = await response.buffer();
+    console.log('Buffer size:', buffer.length);
+    return buffer.length > 0 ? buffer : null;
   } catch (error) {
     console.error('Error generating board image:', error);
     return null;
@@ -24,8 +33,15 @@ module.exports = {
     const puzzle = getRandomPuzzle();
     const chess = new Chess(puzzle.fen);
 
+    await message.reply('🤔 Generating puzzle...');
+
     const boardBuffer = await getBoardImage(puzzle.fen);
-    const attachment = new AttachmentBuilder(boardBuffer || Buffer.alloc(0), { name: 'board.png' });
+
+    if (!boardBuffer) {
+      return message.reply('❌ Could not generate board image. Try again.');
+    }
+
+    const attachment = new AttachmentBuilder(boardBuffer, { name: 'board.png' });
 
     const embed = new EmbedBuilder()
       .setTitle('♟️ Chess Puzzle')
