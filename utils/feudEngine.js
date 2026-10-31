@@ -1,7 +1,7 @@
 // utils/feudEngine.js
 const { getRandomQuestion } = require('./feudData');
 
-const sessions = new Map(); // channelId -> session state
+const sessions = new Map();
 
 function levenshtein(a, b) {
   const m = a.length;
@@ -47,8 +47,8 @@ function createSession(channelId, hostId) {
     hostId,
     phase: 'lobby',
     teams: {
-      A: { name: 'Team A', members: new Set(), score: 0, strikes: 0 },
-      B: { name: 'Team B', members: new Set(), score: 0, strikes: 0 },
+      A: { name: 'Team A', members: new Set(), score: 0, strikes: 0, immunityUsed: false },
+      B: { name: 'Team B', members: new Set(), score: 0, strikes: 0, immunityUsed: false },
     },
     currentQuestion: null,
     usedIndexes: [],
@@ -56,6 +56,7 @@ function createSession(channelId, hostId) {
     stealing: false,
     stealAttempted: false,
     roundPoints: 0,
+    currentRoundMultiplier: 1,
     targetScore: 300,
     roundNumber: 0,
   };
@@ -89,6 +90,7 @@ function startRound(session) {
   session.stealing = false;
   session.stealAttempted = false;
   session.roundPoints = 0;
+  session.currentRoundMultiplier = Math.random() < 0.2 ? 2 : 1;
   session.roundNumber++;
   session.controllingTeam = session.roundNumber % 2 === 1 ? 'A' : 'B';
   return session.currentQuestion;
