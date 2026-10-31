@@ -135,4 +135,25 @@ function getRandomQuestion(excludeIndexes = []) {
   return { question: pick.q, index: pick.i };
 }
 
-module.exports = { loadQuestions, saveQuestions, getRandomQuestion };
+function addQuestion(question, answers) {
+  const questions = loadQuestions();
+  questions.push({ question, answers });
+  saveQuestions(questions);
+  return questions.length - 1;
+}
+
+function removeQuestion(index) {
+  const questions = loadQuestions();
+  if (index < 0 || index >= questions.length) return false;
+  questions.splice(index, 1);
+  saveQuestions(questions);
+  return true;
+}
+
+module.exports = {
+  loadQuestions,
+  saveQuestions,
+  getRandomQuestion,
+  addQuestion,
+  removeQuestion,
+};
